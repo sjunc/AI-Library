@@ -110,3 +110,73 @@ convolution 연산을 통해 나온 특징맵을 다운샘플링하여 크기를
 드롭아웃(Dropout)  
  과적합을 피하기 위해 일부 뉴런을 랜덤하게 비활성화하는 기법(epoch마다 랜덤 비활성화)  
 
+## 4주차 ResNet (Residual Network)
+Residual 잔여, 잔차  
+### ResNet(Residual Network): Skip connection을 이용한 CNN 신경망  
+CNN 중 가장 많이 사용하는 모델  
+기존의 학습(VGG 모델)의 경우 층이 더해지면 어느 순간 기울기가 0에 가까워지는 기울기 소실 문제  
+이를 해결하기위해서 skip connection 도입해 Residual Learning을 함 = ResNet  
+예시로 VGG-16은 16층  
+ResNet-18, ResNet-34, ... , ResNet-1202 등이 있음  
+도표를 보면 어느 순간부턴 더 낮아지지 않는 걸 확인 가능   
+Sigmoid 함수가 대부분 0에 가깝고 높은 값도 0.25정도고 층을 더 할 수록 줄어듦.  
+skip connection: 블록을 통과하는 f(x)와 통과하지 않은 X를 더해줌  
+그런 블록을 Residual Block이라고 부름  
+- f(x) + X  
+224 X 224 이미지
+초반의 연산량을 줄이고 전체적인 파악을 위해 큰 Conv 7X7 사용 -> 112 X 112
+특징맵 추출
+이미지는 점점 작아지고  
+필터 수는 점점 늘어남  
+
+처음 image 3채널 (R, G, B)  
+나올 땐 64 채널  
+F(x)와 x를 더해주려면 채널의 수가 같아야 함. 이미지의 특징을 손상시키지 않으면서 채널의 수를 맞춰주는 작업 *다운샘플*을 진행시킴  
+ 
+### Average Pooling  
+2  2  7  3   
+9  4  6  1  
+8  5  2  4  
+3  1  2  6    
+Filter (2X2)  
+Stride (2, 2)  
+Max pool
+9  7  
+8  6  
+Average Pooling 
+4.25  4.25  
+4.25  3.5  
+  
+### Batch Normalization(배치 정규화)
+배치 단위를 정규화하는 기법이며, 각 배치의 출력의 분포를 일정하게 해줌.  
+학습이 되는 부분으로 정규화 결과에 Scale(감마), Shift(베타)를 학습해 정규화 결과에 적용함  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
