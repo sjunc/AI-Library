@@ -238,6 +238,176 @@ p12 뉴런 단위로 표현한 RNN
 ...........................     
 N-31번째 날 ~ N-1번째 날 학습 -> 예측  
 
+## 6주차 LSTM
+#### RNN의 한계
+기울기 소실(원인)  
+장기 의존성 문제 발생(결과)  
+#### Long Short Term Memory 
+장기 기억(cell state)와 단기 기억(hidden state) 담당이 존재  
+Gate를 통해 연산을 진행  
+기존 RNN의 문제를 해결  
+기존 RNN의 hidden state(은닉 상태)에 cell state(셀 상태)를 추가  
+• 필요한 정보는 기억하고 Input gate + candidate gate  
+• 불필요한 정보는 약화시키고 Forget gate  
+• 새로운 정보는 선택적으로 저장할 수 있음 Input gate + candidate gate   
+내보낼 때 Output gate 총 4가지  
+
+자연어 처리, 시계열 예측(주가), 음성 인식(STT, Speech-To-Text) 등에서 사용됨  
+Long-Term 장기 기억 유지 과거의 데이터  
+Short-Term 단기 정보 처리 새로 들어오는 데이터   
+Memory 기억  
+  
+관련 개념들  
+• Hidden State(hₜ, 또는 hsₜ)  
+• Cell State(cₜ 또는 csₜ)  
+• Forget Gate  
+• Input Gate  
+• Output Gate  
+• Candidate Gate(ĉₜ)  
+• Concatenate 연산 [hₜ₋₁, xₜ]  
+• Element-wise multiplication  
+• sigmoid와 tanh 활성화 함수  
+  
+### 연산
+Concatenate 연산  
+연결해서 붙인다.  
+[1, 2, 3] [4, 5, 6] = [1, 2, 3, 4, 5, 6]
+O 안에 ' 기호  
+Element-wisemultiplication  
+~를 기준으로(방향으로) 연산한다.  
+O안에X 기호  
+
+### 함수
+Sigmoid  
+0~1 사이의 값  
+결과가 무조건 양수 값임.  
+Tanh(탄젠트 H 혹은 하이퍼볼릭탄젠트)  
+-1 ~ 1 사이의 값  
+결과는 입력에 따라서 음수 -> 음수, 0 -> 0, 양수 -> 양수  
+  
+### State  
+장기기억회로   Output gate와 현재 시점의 Cell State를 통해 Hidden State가 업데이트됨  
+  
+_>____________________>  cell state  
+|                  |  
+|__________________|__>  hidden state  
+단기기억 회로    |    
+               출력   
+Forget gate(어떤 걸 잊을 지 결정) 현재 시점의 입력과 Input gate, Candidate gate를 통해 Cell State가 업데이트됨  
+
+### gate
+Forget Gate   
+이전 cell state에서 어떤 정보를 잊을지 결정하는 gate   
+장기기억 중에서, 중요하지 않은 과거의 정보를 제거함   
+Candidate Gate(+Input)  
+새로 들어올 정보의 값(내용)을 생성함  
+(비유) 새롭게 들어온 입력으로 초안을 작성함  
+Input Gate  
+현재 시점의 입력에서 어떤 정보를 새로 기억할지 결정하는 gate  
+(비유) candidate gate가 뽑아둔 초안 중 쓸만한 걸 선택함  
+Output Gate  
+최종적으로 현재 시점의 출력(hidden state)을 결정함  
+여기서 만들어진 출력은 다음 시점으로 전달되면서 결과 예측에 사용될 것임.  
+진행과정  
+(hₜ₋₁ [예전의 hidden state], xₜ [지금의 입력])  
+↓  
+[Forget Gate] : 이전 기억 (cₜ₋₁ 예전의 cell state) 중에서 무엇을 얼마나 잊을지 결정  
+[Input Gate + Candidate Gate] : 현재 들어온 입력 중에서 무엇을(candidate gate) 얼마나(input gate) 기억할지 결정  
+↓  
+Cell State 업데이트 (cₜ가 생성됨) 그 다음 LSTM,시점의 입력으로 가게 됨  
+↓  
+[Output Gate] : 무엇을 얼마나 출력할지 결정  
+↓  
+출력 (hₜ [t+1 시점의 입력]) 생성  
+작동원리 그림  
+Xt = xt(현재 들어온 입력) 와 Ht-1 concatenate 연산(단순 합치기) 백터임.   
+현재 가중치와 
+Xfₜ = σ(W_f · Xₜ + b_f) ← forget gate
+  결과값은 0~1사이  
+  0에 가깝게 나오면 기억을 잊고  
+  1에 가까우면 기억을 보존함  
+  
+맨위 + 기호 있는 곳  아래
+지금 온 과정: 잊을 것을 잊고 새로 기억해야할 것을 선정해서 Ct-1을 Ct로 업데이트 함.  
+ĉₜ = tanh(W_c · Xₜ + b_c): candidate gate  
+부호 유지하면서 새롭게 들어올 정보의 초안을 생성함  
+iₜ = σ(W_i · Xₜ + b_i): input gate   
+초안 중에서 결정함 Element-wisemultiplication   
+oₜ = σ(W_o · Xₜ + b_o) ← output gate  
+σ 0과 1사이  
+아래 softmax를 거치는 과정은 ( 결과를 낼 때 사용)  
+이 그래프에서 편차는 생략되어 있는 것이고 가중치는 학습하면서 전부 게이트 별로 따로 업데이트를 함  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 7주차 CRNN
 
 
 
