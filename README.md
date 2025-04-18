@@ -423,6 +423,21 @@ CRNN = Input -> CNN Layer -> RNN Layer -> Output
 • 비디오 분석과 비슷한 방식으로 CRNN 적용 가능  
 
 ### CTC Loss
+**CTC(Connectionist Temporal Classification) Loss**
+cnn에서 나온 feagure map과 rnn을 통해 나온 다대다 시퀀스를 정답인 hello 5글자만 나타야 할 때 같은 상황에서 손실을 구할 때 사용  
+즉, 하나의 정답을 표현하는 방법이 여러가지 존재할 때, 가능한 모든 표현 방식을 고려하여 손실을 계산하도록 설계된 함수  
+예측 시퀀스로부터 공백과 중복된 문자를 제거하여 최종 예측 결과를 구함  
+
+a를 나타내는 표현으로는 aa, _a, a_ 
+aa: 0.4 X 0.4 = 0.16
+a_: 0.4 X 0.1 = 0.04
+_a: 0.1 X 0.4 = 0.04
+-> 0.24  
+CTC loss 사용    
+"dogs"로 해석될 수 있는 모든 시퀀스 경로들을 인정함.  
+( d d o o o g s s뿐만이 아니라, d d o o g g s s, _ d _ o o _ g s, d _ _ o g g _ s, d d d o o g g s s 등도 dogs로 해석되는 여러가지 경로임.)  
+CTC는 이 모든 경로의 확률을 더한 값을 정답 "dogs"의 확률로 간주함.  
+모델은 이 확률(정답을 맞출 확률)이 최대한 높아지는 쪽으로 학습되고, 그 과정에서 계산되는 손실값이 CTC Loss임.  
 
 
 
@@ -430,11 +445,17 @@ CRNN = Input -> CNN Layer -> RNN Layer -> Output
 Input -> CNN Layer -> RNN Layer -> Output  
 이미지를 분해하지않고 통으로 넣은 다음 특징을 추출  
 
+• 목표: CAPTCHA 이미지 속 문자를 자동으로 인식하는 신경망 구현  
+• 네트워크 구조: CNN(ResNet) + RNN (GRU)  
+• 새로운 개념: CTC Loss  
+• 프로젝트의 입력값: 영어 소문자 및 숫자 포함된 CAPTCHA 이미지  
+• 프로젝트의 출력값: 예측된 문자 시퀀스  
+  
    
 ## 시험
 30문제 : 코드 작성 제거 (코드 해설 필요) 구조 파악 필요 무슨 기능인지   
 RNN 5주차 생각해보기 답 추가됨  
-객관식, 주관식 서술형  
+객관식12, 주관식11, 서술형7   
 
 
 
