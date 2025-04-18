@@ -338,77 +338,103 @@ oₜ = σ(W_o · Xₜ + b_o) ← output gate
 아래 softmax를 거치는 과정은 ( 결과를 낼 때 사용)  
 이 그래프에서 편차는 생략되어 있는 것이고 가중치는 학습하면서 전부 게이트 별로 따로 업데이트를 함  
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## 7주차 CRNN
-
+## 7주차 GRU, CRNN
+  
+복습: LSTM 장기 의존성 문제 해결  
+Cell state (장기) + hidden state(단기)  
+Forget, Input+ candidate, Output gate 존재   
+시그모이드와 tanh 사용의 차이  
+### GRU
+LSTM의 구조가 복습하여 학습 시간이 긺. 성능은 유지하면서 더 간단하고 학습이 빠른 구조  
+GRU (Gated Reccurented Unit)  
+두 개의 게이트  
+Update gate 새 정보의 비율 조절  
+Reset gate 적게 쓸지 조절  
+하나의 State  
+GRU는 Hidden state만 사용함   
+•Update Gate(z_t)  
+• Reset Gate(r_t)  
+• Hidden State(h_t)  
+• Candidate State(g_t)  
+z_t: Update Gate  
+r_t: Reset Gate  
+σ: sigmoid 활성화 함수 -> (0~1) 부호 정보 없애고 0~1로 정규화  
+tanh: hyperbolic tangent 활성화 함수 -> (-1 ~ 1)  
+
+### GRU의 구조
+z_t(Update Gate) (reset gate와 설명이 같음)  
+: 무엇을 기억에서 지우고, 무엇을 유지할지 결정함  
+: 이전 상태 h_(t-1)과 현재의 입력 x_t를 이용해 계산함  
+zt = WxzXt + WhzHt-1 +bx
+W의 첫 번째 첨자: 입력 소스  
+W의 두 번재 첨자: 목적지 게이트  
+  
+g_t(Candidate State, )  
+새로운 hidden state의 후보을 담고있음.    
+gt = tanh(WxgXt + Whg(rt 0x ht-1) +bg)  
+     부호유지     resetgate 결과물과 이전 hidden state의 값 연산  
+       
+h_t(최종 hidden state)  
+: update gate(z_t)를 사용하여 예전의 기억과 새로운 정보를 혼합함  
+gt(새로운 값)을 얼마나 남길지 정하고 예전정보를 얼마나 남길지 정해서 더한 값  
+
+### CRNN
+CNN (Convolutional Neural Network) + RNN(Recurrent Neural Network)   
+이미지 특징 추출에 탁월                시간 순서(sequence data)가 있는 데이터 처리에 유용   
+이미지에서 선, 모서리, 패턴을 뽑아낼 수 있음 (feature 추출)  
+문장 번역, 음성 인식(STT), 이미지 캡셔닝  
+다대다    ,  다대다      ,  일대다   
+  
+### CRNN 구조
+CRNN = Input -> CNN Layer -> RNN Layer -> Output  
+   손글씨 이미지 -> CNN feature(순차적인데이터) -> RNN -> 출력 (손글씨 인식 결과)  
+   손글씨 이미지, 스펙트로그램, 영상 프레임 등의 순서가 있는 데이터들  
+   왼쪽부터 오른쪽, 주파수이미지, 영상분석(비디오캡셔닝)     
+즉 CRNN도 RNN처럼 순서가 있는 데이터로  
+
+•Input  
+예: 손글씨 이미지, 스펙트로그램, 영상 프레임 등의 순서가 있는 데이터들  
+•CNN Layer  
+•2D 이미지 입력을 여러 개의 feature map으로 변환하여 출력함  
+•여기서 중요한 건 CNN이 시간축을 보존하도록 커널을 설계해야 함  
+(예: 가로로 긴 글자 이미지 → CNN의 출력도 글자 순서를 시퀀스로 해석 가능한 형태여야 함)  
+•RNN Layer  
+•CNN의 출력(feature sequence)을 받아서 시퀀스를 분석함  
+•예: Vanilla RNN, GRU나 LSTM 같은 셀을 사용하여 시퀀스 정보를 처리함  
+•Output Layer  
+•최종적으로 어떤 값이 출력되어야 할 지 계산함(예: 글자, 음소 등의 값)  
+•일반적으로 CTC (Connectionist Temporal Classification)라는 손실함수를 사용함   
+→ 글자의 위치를 정확히 몰라도 전체 문자열을 학습 가능함!  
+### 활용분야  
+• 문자 인식(OCR)  
+• (예) 차량 번호판 인식, Captcha 해독, 문서의 디지털화  
+• CRNN이 이미지 내의 연속된 글자를 순차적으로 인식함  
+• 음성 인식 (Speech-to-Text)  
+• 음성 -> 스펙트로그램(시간축에 따른 이미지) -> CRNN  
+• CNN으로 주파수의 패턴을 추출하고 RNN으로 순차적으로 데이터를 처리함  
+• (예) 자동 자막 생성, 자동 회의록 작성  
+• 비디오 분석  
+• 연속된 영상 프레임을 분석함  
+• (예) CCTV 이상 행동 탐지, 스포츠 영상 분석  
+• 악보 인식  
+• 이미지로 된 악보 -> 음표 변환  
+• (예) 악보의 디지털화,   
+• 수어 인식  
+• 비디오 분석과 비슷한 방식으로 CRNN 적용 가능  
+
+### CTC Loss
+
+
+
+### 실습 Captcha 이미지 인식  
+Input -> CNN Layer -> RNN Layer -> Output  
+이미지를 분해하지않고 통으로 넣은 다음 특징을 추출  
+
+   
+## 시험
+30문제 : 코드 작성 제거 (코드 해설 필요) 구조 파악 필요 무슨 기능인지   
+RNN 5주차 생각해보기 답 추가됨  
+객관식, 주관식 서술형  
 
 
 
