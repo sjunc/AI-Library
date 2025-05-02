@@ -452,36 +452,75 @@ Input -> CNN Layer -> RNN Layer -> Output
 • 프로젝트의 출력값: 예측된 문자 시퀀스  
   
    
-## 시험
+## 중간고사
 30문제 : 코드 작성 제거 (코드 해설 필요) 구조 파악 필요 무슨 기능인지   
 RNN 5주차 생각해보기 답 추가됨  
 객관식12, 주관식11, 서술형7   
 
 
+## 09주차 U-Net
+U자형 Network 정보가 압축 되다가 점점 복윈되는 형태  
+Image Segementation  
+### 등장 배경
+Image Classification 문제  
+이미지 -> class CNN으로 일부 해소 가능  
+이미지 분할(Image segmentation) 문제 픽셀당 분할  
+이미지 -> segmentation map  
 
+image Classfication  
+object detection (localization)  
+Image segmentation  
 
+정밀함에 있어서 한계가 존재했음  
+  
+Image Classification 문제:   
+일반 CNN (입력)이미지 -> Convolution layer -> Pooling -> Fully connected layer -> (출력)Class정보  
+이미지 분할(Image segmentation) 문제:  
+단순한 FCN(Fully Convolutional Network)을 사용하면,
+(입력)이미지 -> Convolution layer -> Pooling -> Convolution layer -> (출력)Segmentation map  
+-> 이미지의 기존 위치 정보 소실로, 모서리나 경계선이 뭉개진 저품질의 결과(ex:의료영상 성능 저하)  
+-> (IDEA) 이미지의 위치 정보를 유지해줄 skip connection이 필요!  
 
+### 특징 
+Encoder-Decoder 구조와 Skip connection을 통해 공간 정보(모양 파악)와 추상 정보(의미)를 동시에 활용함  
+(축소)   (복원)    
+전체 구조가 대칭적인 U자 형태를 띰  
+Encoder-Decoder 구조로 해상도 감소-복원 흐름을 따라감  
+Fully Convolutional Network과 비교하면 U-Net은 소규모 데이터셋에서 높은 정확도를 보임  
+그러한 특성으로 의료 영상(IRB)처럼 데이터 수집이 어려운 분야에서 많이 활용됨  
 
+### Encoder-Decoder
+Encoder: Convolution과 Pooling을 반복하면서 입력된 이미지를 점점 압축하고, 추상적인 특징을 추출해내는 역할을 함  
+Decoder: Upsampling을 통해 추출된 특징(압축된 정보)을 점진적으로 복원하고, 원래의 이미지 크기와 유사하게 재구성하는 역할을 함  
+### Upsampling
+이미지에서 추출한 특징을 이용해 이미지를 복원하는 과정, 이미지의 해상도를 키우는 과정  
+겹치는 부분을 더해 나감 2X2 -> 3X3   
+### Downsampling = 해상도(H×W)를 줄이는 것  
+U-Net에서는 인코더 내부에서 일어나는 해상도를 축소하는 연산 자체를 가리키는 용어(채널수는 상관없음)  
+ex) ResNet에서의 다운샘플 -> 모양을 맞춰주기 위해 해상도를 줄이면서 채널수를 늘렸었음!: F(x)와 x를 더해주려면 채널의 수가 같아야 함.  
 
+### Skip Connection
+같은 깊이의 인코더 출력과 디코더의 입력을 직접 연결해주는 구조  
+U-Net에서는 두 feature map을 concatenate(채널 추가)하거나, 값을 더해줌(다른 연산도 가능)  
+64개 채널 U 64개 -> 더해서 128개의 채널
+목적: 인코더 초반에서 추출한 공간 정보를 디코더에서 고수준의 의미 정보와 함께 사용해 정밀하게 이미지를 복원할 수 있게 만들기 위해 사용할 수 있음   
+경계면 정보 손실을 완화시킴(의료영상 성능 향상)  
 
+### 구조 
 
+Encoder와 Decoder가 각각 여러 층으로 구성되며, 같은 깊이의 인코더와 디코더 층 사이에 skip connection이 있음  
+Encoder 층 10개 -> Decoder 층 10개  
+Encoder에서 추출한 featere는 decode에서 고해상도 출력을 복원할 때 직접 결합되어 사용됨  
+마지막에는 1*1 convolution을 이용해 클래스 수만큼 채널을 줄이고, 이미지의 각 픽셀마다 분류 결과를 출력함  
 
+### 활용 분야
 
+Image Segmentation  
+이미지 분할 사람, 배경, 도로 차량  
+Image Restoration  
+의료영상 노이즈 제거  
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### 실습  
 
 
 
