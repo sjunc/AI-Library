@@ -526,6 +526,109 @@ Image Restoration
 Unet ->   resize 
 
 기존의 3가지로 분리되어있는 데이터에서 경계와 동물을 합해서 이진분류로 변경시킴  
+  
+## 10주차 Auto-Encoder
+오토인코더(AutoEncoder)는 입력 데이터를 압축하여 latent vector로 요약하고, 이를 바탕으로 입력을 복원하는 비지도 학습 신경망 구조   
+  
+• 흐름: 이미지 입력 -> 인코더 통과 -> 잠재 벡터(latent vector) 생성 -> 디코더 통과 -> 복원된 이미지 출력  
+                                    잠재 벡터 = 이미지를 잘 요약한 작은 벡터  
+  
+• 출력은 입력과 가능한 한 유사해야 함  
+• 손실함수는 주로 MSE(평균 제곱 오차)를 사용함  
+*지도학습이 아니며, 입력을 복원하는 것이 목적임 (입력받는 이미지 자체가 정답이지만 비지도학습임)  
+  
+UNet에서 Skip Connection이 없는 느낌  
+가장 깊은 층에서 latent vector가 작동  
+### 왜 쓸까?
+정답을 맞추는 것이 목적이 아니라, 데이터의 중요한 특성을 잘 요약하는 인코더(*latent vector*, 잠재 벡터)를 만들고, 그 정보를 기반으로 이미지를 잘 복원하는 디코더를 만들기 위함임  
+• 학습 과정에서 모델은 입력의 구조적/의미적 핵심을 latent vector에 응축하고, 그 요약된 표현만으로원본 입력에 가깝게 복원할 수 있도록 학습됨  
+• 이 과정은 데이터의 내재된 패턴을 잘 학습하도록 유도함  
+• (예) 사람 얼굴 사진에서 주요 특징들을 아주 잘 뽑아내어서 그 특징만으로도 입력된 사람 얼굴과 최대한 비슷한 이미지를 복원할 수 있음  
+즉 목적은 정확한 복사가 아닌 의미있는 요약후 의미 있는 복원  
+
+### AutoEncoder 구조
+AutoEncoder의 기본 구조 [Encoder] -> (latent vector) -> [Decoder]  
+• Encoder: 입력데이터를 점점 압축하여 중요한 특징만 남김  
+• Conv2D(이미지) 또는 Dense Layer 등을 사용할 수 있음  
+• Latent Vector: 입력의 핵심 정보만을 담고 있는 압축된 표현  
+• 즉, 입력을 요약한 정보  
+• Decoder: Latent Vector로부터 입력과 가능한 한 비슷하게 복원함  
+• ConvTranspose2D(Upsampling) 또는 Dense 등을 사용할 수 있음  
+* 인코더와 디코더는 주로 대칭 구조를 이루며, 출력은 입력과 같은 크기와 형태임
+
+다운샘플링 : 5X5 이미지 3X3 커널 stride = 1 -> 3X3 이미지  
+대칭을 이루어야함  
+업샘플링: 3X3 이미지 3X3 커널 stride = 1 -> 5X5 이미지  
+    
+### Latent Vector
+• "Latent" = 잠재적인, 잠복해 있는  
+• 입력의 핵심 정보를 인코더를 통해 압축해 표현한 벡터  
+• 추상적인 정보만 포함하며, 이 벡터를 기반으로 복원을 수행함  
+• 즉, latent vector는 원본 데이터의 아주 잘 정리된 요약본임!  
+• AutoEncoder는 latent vector 하나로 원본 이미지처럼 복원해야 함  
+(추가 설명) latent vector는 말 그대로 1D vector([128])일 수도 있지만, 이미지 데이터를 사용하는 AutoEncoder에서는 작은 크기의 3D tensor([8*8*64])일 수도 있음! - 원본 이미지의 요약 정보만 남긴 표현이라는 점에서 이 역시도 latent vector라고 부름  
+feature map 과 다른 점은?  
+여러개의 feature map  
+하나 만으로 복윈하는 핵심 정보만 담은 latent vector  
+기술적으로 비슷함  
+
+### Convolutional AutoEncoder(CAE)
+• 이미지 데이터를 다룰 때 적합한 합성곱 기반의 AutoEncoder  
+• Dense Layer가 아닌 Conv2D, MaxPooling 등의 CNN의 연산을 사용하여 이미지의 공간적 구조(위치, 형태 등)를 잘 보존함  
+• (예) 인코더 - Conv2D -> ReLU -> MaxPooling 등을 반복  • 디코더 - ConvTranspose2D(=Upsampling) -> ReLU -> UpSampling2D 등을 반복  
+• 장점: 공간정보 유지, 이미지 데이터에 특화  
+ ConvTranspose2D(=Upsampling unet 할 때 나왔던 업샘플링)   
+ UpSampling2D (별도의 가중치 학습 없이 주변의 픽셀들을 복사하거나 짐작으로 보관으로 이미지 확대 업샘플링)  
+ 인코더와 디코더는 대칭 구조를 이룸  
+
+### AutoEncoder 활용
+노이즈 제거  
+  
+선명한 이미지(원본) -> 노이즈 추가 -> 인코다 -> latent -> 디코더 -> 출력(원본 이미지와 비교)  
+  
+이상 탐지  
+  
+Anomaly Detection: 재구성 오류로 이상 탐지에 활용함 -> latent vector로부터 복원하는 능력이 떨어지면, '이상'으로 판단  
+AutoEncoder를 정상 데이터로만 학습하면 정상 데이터 입력에서는 복원 능력이 뛰어남.
+그렇지만 학습된 것과 현저히 다른 이상 데이터가 입력되면, AutoEncoder는 정확하게 복원하지 못하고 오차가 커짐.
+이 특성을 사용하여 anomaly detection을 할 수 있음 (스팸처리도 가능한가? 속도가 느려서 안되나?)  
+
+차원 축소  
+Demensionality Reduction: PCA처럼 사용 가능  
+• latent vector를 차원 축소의 결과로 활용 가능(요약 특화)  
+
+### UNet과 비교  
+AutoEncoder와 U-Net은 모두 encoder-decoder 구조이지만, 복원의 목적과 방식이 서로 다름
+• U-Net은 skip connection을 통해 인코딩 중에 나온 원본에 더 가까운 형태의 여러 feature map을 디코딩 단계에서 받아 데이터의 정밀한 복원에 사용하지만, AutoEncoder는 요약한 후 나온 latent vector 하나만으로 원본 데이터와 비슷하게 복원해 냄  
+  
+*정밀한 위치 정보나, 경계 보존이 중요한 경우(예 - 의료영상), skip connection을 사용하는 U-Net이 더 유리하고, 성능이 높음  
+둘은 즉 목적 자체가 다름  
+
+| 항목 | Autoencoder |U-Net |
+|------|---|---|
+|목적 | 입력을 그대로 복원(요약된 정보를 얻을때)| 픽셀 단위 예측|
+|입력-출력 관계|입력과 동일한 해상도에서 목적에 맞는 값을 얻는 것이 목적 |입력-출력 관계 입력과 동일한 출력을 얻는 것이 목적|
+|Skip connection|X| O (복원할 때 힌트가 됨)|
+|측력 특징(이미지)|latent vector만을 기반으로 복원한 이미지|skip connection으로 정밀하고 정확하게 경계를 유지한 이미지|
+|압축 강도| 높음 (latent vector로 압축)| 낮음 (정보를 많이 유지하려 함)|
+|사용 분야| 노이즈 제거, 이상 탐지 등 |의료 영상, 이미지 분할(segmentation)등|
+
+
+### AutoEncoder 실습
+  
+입력  
+원본 이미지 -> [노이즈 추가] -> 노이즈 추가된 이미지 -> Encoder -> latent vector -> Decoder -> 복원된 이미지  
+
+Mnist데이터 셋 -> 가우시안 노이즈 추가 -> 텐서 변환 및 정규화 -> CNN 블록과 ReLU 조합 Encoder -> CNN블록 + upsample Decoder -> 채널 수 맞추기 -> 학습 진행 -> 이미지 비교  
+
+    
+
+
+
+
+
+
+
 
 
 
