@@ -723,7 +723,94 @@ Mnist데이터 셋 -> 가우시안 노이즈 추가 -> 텐서 변환 및 정규�
 
 rate = 0.001
 
+## 12주차 Attention 알고리즘
+Seq2Seq 모델  
+(Sequence to Sequence)  
+입력 시퀀스를 받아 출력 시퀀스로 변환하는 모델  
+핵심 구조는 인코더와 디코더!  
+Input Sequence -> Encoder -> Context Vector -> Decoder -> Output Sequence  
+Encoder - 입력 시퀀스를 하나의 벡터로 압축  
+Decoder - 그 벡터를 바탕으로 출력 시퀀스 생성  
+### Seq2Seq 모델의 한계
+- Seq2Seq는 모든 입력 시퀀스를 받아 고정된 크기의 벡터로 압축함  
+- 디코더는 입력 전체를 직접 보지 못하고, 압축된 벡터만으로 출력 시퀀스를 만들어야 함  
+- 즉, 시퀀스(문장)가 길어질수록 중요한 정보가 희석되고 사라질 수밖에 없음  
+"나는 어제 친구랑 도서관에서 책을 읽고나서 카페에 가서 아아를 마시고 왔어" -> Seq2Seq: ???  
+solution: 출력 시퀀스를 하나씩 만들 때, 입력 시퀀스 중 어느 단어가 중요한지 직접 살피며 생성함  
+### Attention Mechanism: 현재 시점에서 중요한 정보에 집중하는 매커니즘
+• (idea) 사람이 책을 읽을 때 중요한 단어에 집중하듯, 기계도 마찬가지로 디코딩할 때 그 시점에서 중요한 입력 단어를 직접 골라 보면 더 좋은 출력을 낼 수 있음  
+• 디코더에서 문장을 생성할 때, 압축된 벡터뿐만 아니라 전체 입력 시퀀스를 보고, 각 단어의 중요도를 계산하여 가중치를 줌  
+• 현재 시점에서 가장 중요한 단어에 더 많이 집중(Attention)하도록 학습함  
+### Seq2Seq + Attention
+기존 Seq2Seq는 인코더 마지막의 출력 하나만 사용했지만, Attention은 인코더의 모든 출력(hidden state)을 활용해 디코더가 중요한 단어를 동적으로 선택할 수 있도록 함  
+(예) "나는 사과를 먹었다"  
+  
+[입력 문장]     
+나는 → 사과를 → 먹었다   
+↓         ↓       ↓   
+[h₁]    [h₂]     [h₃]  ← 인코더의 각 단어별 hidden state ht      
+↓         ↓       ↓   
+디코더에서 시점 t마다 attention score 계산 (h₁, h₂, h₃ 각각과 유사도)    
+↓  
+context vector 생성(h1, h2, h3과 attention score간의 가중합을 구하여 생성)  
+↓  
+st + ct → 다음 단어 예측  
+- st: 지금까지 디코더가 생성한 문맥 정보를 담고 있는 상태 벡터  
+- ct: 현 시점에서 입력 중 가장 중요한 정보를 담고 있는 context vector  
+  
+### 계산 방법
+[입력 문장]  
+나는 → 사과를 → 먹었다  
+↓ ↓ ↓  
+[h₁] [h₂] [h₃] ← 인코더의 각 단어별 hidden state ht와, 디코더가 지금까지 생성한 단어들로부터 얻은 hidden state st  
+↓ ↓ ↓  
+디코더에서 시점 t마다 attention score 계산 (h₁, h₂, h₃과 st와의 유사도)  
+↓  
+context vector 생성(h1, h2, h3과 attention weight간의 가중합을 구하여 생성)  
+↓  
+st + context vector  
+↓  
+다음 단어 예측  
+*attention weight: attention score들을 softmax로 정규화하여 나온 가중치 (전체 합 = 1)  
+(1) 벡터 h₁ = 나는의 정보  
+(2) 벡터 h₂ = 사과를의 정보  
+(3) 벡터 h₃ = 먹었다의 정보  
+(4) 지금까지 생성한 단어들로 부터 나온 hidden state 벡터 st  
+이 St를 기준으로 인코더의 각 hi와 유사도(score)를 계산함.  
+score들을 softmax에 넣어 attention score(attention weight)를 계산함  
+attention weight와 각 시점의 hidden state를 통해 context vector를 생성함  
+현재의 context vector ct와 현재의 hidden state인 st를 활용해 출력(단어 예측 결과)을 생성함  
+st: 지금까지 디코더가 생성한 문맥 정보를 담고 있음  
+ct(현 시점의 context vector): 입력한 문장에서 참고해야 할 정보  
 
+OUTPUTt = softmax(Wo ' [St;Ct] + b)  
+|벡터 | 값 |
+--
+|h1| [1, 0, 0]|
+--
+|h2| [0, 1, 1]|
+--
+|h3| [1, 1, 0]|
+--
+|st| [2, 1, 1]|
+--
 
+#### 1. Attention Score 계산  
+score1 = St ' h1 = [2, 1, 1] ' [1, 0, 0] = 2  
+score2 = St ' h2 = [2, 1, 1] ' [0, 1, 1] = 1+1 = 2  
+score3 = St ' h3 = [2, 1, 1] ' [1, 1, 0] = 2 +1 =3  
+#### 2. Attention Weight 계산 : score의 softmax 정규화 값  
+attention weights ~~ [0.212, 0.212, 0.576]  
+#### 3. Context Vector 계산  
+0.212 ' h1 = [0.212, 0, 0]  
+0.212 ' h2 = [0, 0.212, 0.212]  
+0.576 ' h3 = [0.576, 0.576, 0.0]   
+  
+context ~~ [0.212 + 0.576, 0.212 + 0.576, 0.212] = [0.788, 0.788, 0.212]  
+#### 4. st와 ct를 사용해 출력 시퀀스 생성   
+• 즉, Seq2Seq처럼 벡터 하나만을 사용하지 않고, 매 디코딩 시점마다 동적으로 생성되는 고정된 크기의 context vector를 사용함  
+• context vector의 크기는 고정되어 있지만, 시점마다 내용이 다름!  
+• 입력 시퀀스의 모든 단어를 부분적으로 반영하면서도 중요한 단어에 집중할 수 있음!  
 
+### 실습 기계학습 
 
