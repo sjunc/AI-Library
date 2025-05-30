@@ -810,5 +810,156 @@ context ~~ [0.212 + 0.576, 0.212 + 0.576, 0.212] = [0.788, 0.788, 0.212]
 • context vector의 크기는 고정되어 있지만, 시점마다 내용이 다름!  
 • 입력 시퀀스의 모든 단어를 부분적으로 반영하면서도 중요한 단어에 집중할 수 있음!  
 
-### 실습 기계학습 
+### 실습 기계번역
+GRU + Attention  
+LSTM + Attention  
+## 13주차 Transformer 모델
+• 논문 'Attention Is All You Need'(2017)에서 소개된 딥러닝 모델  
+• 순차적 처리 없이도 입력 시퀀스의 관계를 효과적으로 학습할 수 있도록 설계되었음  
+**주요 특징**  
+• Self-Attention Mechanism: (발전-> Multi-Head Attention Mechanism) 입력 시퀀스 내의 모든 단어 간의 관계를 동적으로 학습함  
+• Encoder-Decoder 구조 사용  
+• **병렬 처리**: 전체 시퀀스를 동시에 처리할 수 있어 RNN(순차적으로 처리해야 함)보다 학습속도가 빠름  
+• 다양한 활용 분야: 자연어 처리, 컴퓨터 비전(ViT), 음성 처리 등 다양한 분야에 활용됨  
+
+### 구조(복잡)
+
+(입력 데이터) -> 토크나이저 -> 임베딩 레이어 -> 인코더 N개 -> 디코더 N개 -> 출력층 -> (출력 결과)  
+  
+*디코더는 순차적인 생성 작업을 할 때 필요하며, 단순 분류 목적(예: BERT | 감정분류, 감성분석 등)일 경우에는 필요하지 않음.  
+
+• 토크나이저(Tokenizer): 입력 텍스트를 토큰화하고 정수 ID 시퀀스로 인코딩함   
+• 임베딩 레이어(Embedding layer): 정수 ID 시퀀스를 각 ID에 해당하는 고차원 벡터(임베딩)로 변환하고, 위치 정보를 더함<-- (전체를 받기 때문에 위치정보 따로 Postional Encoding)  
+• Encoder: 전체 시퀀스를 받아 각 단어가 문장 내 다른 모든 단어들과 어떤 관계를 맺고 있는지 학습함.  
+단어의 문맥적 의미를 보다 풍부하게 파악할 수 있음. 여러 인코더 층이 쌓여 있음 Attention  
+• Decoder: 이전에 생성한 단어들(이전 출력)과 인코더의 출력을 입력받아(Attention) 다음 단어를 순차적으로 예측함. 여러 디코더 층이 쌓여 있음  
+• 출력층(Output Layer): 문제 유형에 맞는 최종 결과를 생성함  
+
+
+왼쪽 - 인코더 스택(n회 반복)  
+• Input Embedding + Positional Encoding  
+:입력 단어들을 임베딩하고, 위치 정보를 더함  
+• Multi-Head Self-Attention  
+:입력 문장 안의 단어들끼리 서로 어떤 관계인지 학습함  
+• Feed Forward + Add & Norm  
+:비선형 변환과 정규화  
+
+오른쪽 - 디코더 스택(n회 반복)  
+• Output Embedding + Positional Encoding  
+: 이전에 생성된 출력 단어들을 임베딩하고, **위치 정보**를 더함  
+• Masked Multi-Head Self-Attention(부정 행위 방지)  
+:디코더 내부에서 일어나는 Self-Attention  
+:현재 시점 이전의 단어까지만 참조할 수 있도록 masking 적용  
+• Linear + Softmax -> Output Probabilities
+:(Linear) 마지막 출력 벡터를 단어장의 크기의 벡터로 변환함
+:(Softmax) 각 단어가 나올 확률로 변환하고  
+:(Output) 가장 확률이 높은 단어를 출력함  
+
+
+#### Input Embedding + Positional Encoding
+토크나이저(Tokenizer):
+["the", "cat", "sit", "##s", "."]
+→ [101, 1996, 4937, 3523, 2015, 1012, 102] (문장의 끝과 시작 인덱스도 들어가서 2개가 더 많음)  
+※ 숫자는 단어에 대응되는 고정된 정수 ID
+Input Embedding(각 단어를 벡터로 변환)
+[101] → [0.12, -0.38, 0.45, 0.88]
+[1996] → [-0.21, 0.13, 0.76, -0.45] 
+  
+#### Positional Encoding
+위 임베딩만으로는 위치정보가 없음. 그래서 Positional Encoding을 더해줘야 함.  
+Word: "cat"   
+Embedding: [0.10, 0.40, -0.50, 0.30]  
+Position (index=1): PE[1] = [0.00, 0.84, 0.91, 0.14]  
+
+- Postional Encoding에서 더해주는 값 PE는 학습을 통해 생성된 값이 아닌 공식에 의해 계산되는 값임  
+- "cat" + 1번째 PE -> 문장 중간에 있는 cat이다.  
+- "cat" + 10번째 PE => 문장 끝에 있는 cat이다.
+  
+   
+#### Multi-Head Self-Attention
+Self-Attention
+입력 시퀀스 내의 모든 단어들끼리의 **관계(의존성)** 를 동적으로 파악하는 매커니즘  
+단어마다 문맥을 반영한 표현을 만듦  
+!!전체 토큰간의 관계를 동시에 계산함(병렬 계산)  
+"이 단어가 문장 내에 있는 다른 어떤 단어들과 얼마나 관련이 있을까?"를 계산하는 것  
+"The animal didn't cross the street because it was too tired."  
+단어 'it'이 가리키는 것이 무엇일까  
+?-> Self-Attention은 it이 street보다는 animal과 더 높은 관련성이 있다고 판단하도록 학습함  
+
+Multi-Head Self-Attention
+Self-Attention을 다양한 방식으로 여러번 실행해서 정보의 시야를 넓힘(다양한 시각으로 문장을 바라봄)
+(예) head1 - 문법적 관계
+(예) head2 - 의미적 유사성
+(예) head3 - 위치 정보
+...
+Multi-Head Self-Attention은 self-attention을 여러번하여, 서로 다른 가중치를 병렬적으로 계산함
+
+#### Feed Forward + Add & Norm 층
+Feed Forward Network(FFN)
+• Self-Attention 결과를 입력받음
+• 두 선형 레이어 사이에 ReLU 등의 활성화 함수를 사용함
+• 학습하며 비선형성을 추가하는 역할을
+함
+Add & LayerNorm
+• Add: FFN 출력과 원래 입력을 잔차 연결함(Residual Connection)
+-> 기울기 소실 방지, 원본 정보 유지
+• LayerNorm(Layer Normalization): 잔차가 더해진 결과를 Layer Normalization으로 정규화
+-> 학습 안정화, 수렴 속도 개선
+
+#### Output Embedding + Positional Encoding
+디코더에 들어가는 입력 문장을 숫자 벡터로 바꾸고, 그 단어가 문장 속 몇 번째인지 위치 정보도 함께 더하는 과정  
+Output Embedding: 단어 하나하나를 컴퓨터가 이해할 수 있도록 벡터로 바꿈  
+Positional Encoding: 벡터에 단어의 위치 정보를 더해줌  
+Q. 이 값이 디코더의 입력으로 사용되는 이유는?  
+지금까지 디코더에서 출력했던 시퀀스들을 다시 입력으로 넣어야 다음 단어를 생성할 수 있다.  
+
+
+#### Masked Multi-Head Self-Attention
+디코더의 Self-Attention에서 아직 생성하지 않은 미래의 단어를 참조하지 않도록 Attention Score를 마스킹하여(안 보이게 하여) 계산하는 방식  
+예측 시점에 미래의 (정답) 단어를 참조하면 부정행위가 되어버림.  
+이를 방지하기 위해 Mask를 사용해 이후 단어에 대한 attention을 0으로 제한해야 함.  
+
+#### Linear, Softmax -> Output  
+Linear Layer(선형 변환)  
+입력은 디코더의 마지막 출력  
+선형 변환을 수행함  
+출력은 단어 집합의 차원으로 매핑된 벡터임  
+Softmax  
+전체 단어 중에서 다음에 나올 가능성이 높은 단어를 예측함  
+OUTPUT  
+
+### 다양한 transformer 기반 모델
+• BERT(Bidirectional Encoder Representations from Transformers) -> 분류, 분석  
+• 트랜스포머 기반 양방향 인코더 표현 모델  
+
+• GPT(Generative Pre-trained Transformer)  
+• 생성형 사전학습 트랜스포머 모델   
+
+• T5(Text-to-Text Transfer Transformer)
+• 텍스트-투-텍스트 전이 학습 트랜스포머 모델
+
+• BART(Bidirectional and Auto-Regressive Transformer)
+• 양방향 자기회귀 트랜스포머 모델
+
+|사용목적 | 인코더 사용 | 디코더 사용 | 대표 모델
+|------|---|------|---|
+|분류/분석|O|X|BERT|
+|텍스트생성/번역/요약|O|O|T5, BART, Transformer|
+|텍스트 생성(GPT 계열)|X|O| GPT, GPT-2/3/4|
+  
+• BERT: 입력 전체를 양방향으로 이해하여 문맥을 정밀하게 파악하는 모델  
+• GPT: 이전 단어만 보면서 다음 단어를 생성하는 모델  
+• T5: 입력과 출력이 모두 텍스트인 작업을 범용적으로 처리하는 모델  
+• BART: BERT처럼 인코딩하고, GPT처럼 생성(디코딩)하는 결합형 모델  
+
+
+
+
+
+
+## 14주차
+
+중간고사랑 유사하게 나옴  
+중간고사 이후부터 14주차 내용까지 전부 시험 범위  
+
 
